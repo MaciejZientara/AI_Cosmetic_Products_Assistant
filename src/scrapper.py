@@ -1,8 +1,9 @@
 import os
 from shutil import rmtree
+from pathlib import Path
 
-dirPath = os.path.dirname(os.path.abspath(__file__))
-cDataDir = dirPath+"/cosmeticData"
+dir_path = os.path.dirname(os.path.dirname(__file__))
+raw_data_dir = Path(dir_path, "data/raw_data")
 
 categoryLinks = [
     "https://www.rossmann.pl/kategoria/makijaz-i-paznokcie,12000",
@@ -15,17 +16,17 @@ categoryLinks = [
 
 def clean():
     print("cleaning directory")
-    rmtree(cDataDir) # remove directory with content
+    rmtree(raw_data_dir) # remove directory with content
 
-def get_data(rescrap = False):
+def get_data(rescrap=False):
     if rescrap:
         clean()
     
-    # print(dirPath, cDataDir)
-    if os.path.exists(cDataDir):
+    # print(dir_path, raw_data_dir)
+    if os.path.exists(raw_data_dir):
         return # if data present, do not scrap again
-    
-    os.mkdir(cDataDir)
+
+    raw_data_dir.mkdir(parents=True, exist_ok=True)
 
     productLink = [] # change to queue -> faster append
 

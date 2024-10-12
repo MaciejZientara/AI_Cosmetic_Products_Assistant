@@ -1,12 +1,12 @@
 import scrapper
-import argParser
+import arg_parser
 import graphic
 import logicAI
 import scrapper
 from sys import exit
 
 def main():
-  args = argParser.run_argument_parser()
+  args = arg_parser.run_argument_parser()
   # proccess_arguments
 
   if args.debug:

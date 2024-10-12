@@ -1,9 +1,9 @@
-import globalVars
+import global_vars
 import argparse
 
 def run_argument_parser():
   parser = argparse.ArgumentParser(
-                      prog=globalVars.app_name,
+                      prog=global_vars.APP_NAME,
                       description='What the program does',
                       epilog='Text at the bottom of help')
 

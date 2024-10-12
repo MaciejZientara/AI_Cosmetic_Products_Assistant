@@ -1,2 +1,4 @@
 __pycache__
-cosmeticData
+.ipynb_checkpoints
+raw_data
+.idea
