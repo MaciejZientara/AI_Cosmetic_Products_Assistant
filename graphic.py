@@ -1,10 +1,10 @@
 import globalVars
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow
-from sys import exit
+from sys import exit, argv
 
 def run_app(args):
-  app = QApplication(sys.argv)
+  app = QApplication(argv)
   win = QMainWindow()
   # initial X,Y position on screen, initial X, Y window size 
   win.setGeometry(200,200,1200,800)
