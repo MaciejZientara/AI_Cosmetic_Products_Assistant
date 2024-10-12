@@ -1,4 +1,3 @@
-import scrapper
 import arg_parser
 import graphic
 import logicAI

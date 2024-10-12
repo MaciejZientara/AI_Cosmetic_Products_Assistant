@@ -1,2 +1,2 @@
 
-APP_NAME = "AI Cosmetic Assistant"
+APP_NAME = "AI Cosmetic Products Assistant"

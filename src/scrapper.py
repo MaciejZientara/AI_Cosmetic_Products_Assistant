@@ -5,7 +5,7 @@ from pathlib import Path
 dir_path = os.path.dirname(os.path.dirname(__file__))
 raw_data_dir = Path(dir_path, "data/raw_data")
 
-categoryLinks = [
+category_links = [
     "https://www.rossmann.pl/kategoria/makijaz-i-paznokcie,12000",
     "https://www.rossmann.pl/kategoria/pielegnacja-i-higiena,12001",
     # "https://www.rossmann.pl/kategoria/wlosy,13174",
@@ -30,6 +30,6 @@ def get_data(rescrap=False):
 
     productLink = [] # change to queue -> faster append
 
-    for catLink in categoryLinks:
-        name = catLink[catLink.find("kategoria/") + 10: catLink.find(",")]
+    for cat_link in category_links:
+        name = cat_link[cat_link.find("kategoria/") + 10: cat_link.find(",")]
         # print(name)
