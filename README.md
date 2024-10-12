@@ -4,4 +4,4 @@
 * Katarzyna Kołoda 99693
 
 Potrzebne pakiety Python:
-pip install pyqt5 openai
+pip install pyqt5 openai argparse
