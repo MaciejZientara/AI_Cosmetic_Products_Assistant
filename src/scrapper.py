@@ -1,12 +1,13 @@
 import os
 import requests
+import requests.exceptions
 from bs4 import BeautifulSoup
 from shutil import rmtree
 from pathlib import Path
 
 dir_path = os.path.dirname(os.path.dirname(__file__))
 raw_data_dir = Path(dir_path, "data/raw_data")
-product_links_path = raw_data_dir + "/product_links.txt"
+product_links_path = Path(raw_data_dir, "product_links.txt")
 
 base_url = "https://www.rossmann.pl"
 category_links = [
@@ -22,7 +23,12 @@ def clean():
     print("cleaning directory")
     rmtree(raw_data_dir) # remove directory with content
 
-def get_product_urls():
+def get_product_urls(mode="w"):
+    """
+    Get product URLs and save them to a text file.
+    :param mode: Writing mode for the file. Defaults to "w" (overwrite). Use "a" to append to the file.
+    :return: None
+    """
     product_links = set()
 
     for cat_link in category_links:
@@ -33,19 +39,28 @@ def get_product_urls():
             page += 1 # increase page count to find all products, regardless of category 
             try:
                 response = requests.get(f"{cat_link}?Page={page}")
-            except:
-                break # if page not found - checked all products, exit while loop
+                response.raise_for_status()
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching page {page} of {cat_link}: {e}")
+                continue # skip to the next page if an error occurs
 
             soup = BeautifulSoup(response.text, 'html.parser')
+
+            product_found = False # flag to track if products are found on the page
             
             for a_tag in soup.find_all('a', href=True):
                 href = a_tag['href']
                 if '/Produkt/' in href:
                     product_links.add(href)
+                    product_found = True # set a flag to True when a product is found
+
+            # exit the loop if no products were found on the page
+            if not product_found:
+                break
 
     product_links = list(product_links)
 
-    with open(product_links_path, "w") as txt_file:
+    with open(product_links_path, mode) as txt_file:
         for link in product_links:
             txt_file.write(base_url + link + "\n")
 
