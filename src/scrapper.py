@@ -80,13 +80,15 @@ def get_product_info():
             # with content as follows: description, ingridients and additional information
             for p_tag in soup.find_all('p'):
                 if ("class" in p_tag.attrs) and ('styles-module_productDescriptionContent--76j9I' in p_tag["class"]):
-                    print(p_tag)
+                    print(p_tag.text.strip())
 
             # in <meta content=... property=...> blocks you can find product name, description, price 
             for meta_tag in soup.find_all('meta'):
                 if ("content" in meta_tag.attrs) and ("property" in meta_tag.attrs):
-                    print(meta_tag)
-                
+                    if meta_tag["property"] == "product:price:amount":
+                        print(meta_tag["content"].strip())
+                    if meta_tag["property"] == "og:description":
+                        print(meta_tag["content"].strip())
 
             # block <span class="styles-module_capacity--t8nUz"> XXX </span> holds capacity info, example: "20 ml"
             for span_tag in soup.find_all('span'):
