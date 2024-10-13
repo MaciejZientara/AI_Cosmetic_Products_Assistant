@@ -68,7 +68,32 @@ def get_product_urls(mode="w"):
 def get_product_info():
     with open(product_links_path, "r") as txt_file:
         for link in txt_file: # link per line
-            pass
+            try:
+                response = requests.get(link)
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching {link}: {e}")
+                continue # skip to the next link if an error occurs
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # rossmann pages have blocks with <p class="styles-module_productDescriptionContent--76j9I">
+            # with content as follows: description, ingridients and additional information
+            for p_tag in soup.find_all('p'):
+                if ("class" in p_tag.attrs) and ('styles-module_productDescriptionContent--76j9I' in p_tag["class"]):
+                    print(p_tag)
+
+            # in <meta content=... property=...> blocks you can find product name, description, price 
+            for meta_tag in soup.find_all('meta'):
+                if ("content" in meta_tag.attrs) and ("property" in meta_tag.attrs):
+                    print(meta_tag)
+                
+
+            # block <span class="styles-module_capacity--t8nUz"> XXX </span> holds capacity info, example: "20 ml"
+            for span_tag in soup.find_all('span'):
+                if ("class" in span_tag.attrs) and ('styles-module_capacity--t8nUz' in span_tag["class"]):
+                    print(span_tag.text.strip())
+
+        
 
 def get_data(rescrap=False):
     if rescrap:
