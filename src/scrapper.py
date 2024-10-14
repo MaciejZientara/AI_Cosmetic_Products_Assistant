@@ -106,7 +106,22 @@ def get_product_urls(mode="w"): # mode argument no longer used, TO FIX
                     txt_file.write(base_url + link + "\n")
                 product_links.clear()
 
+polish_letters = [
+    ("\u0105","ą"), ("\u0104","Ą"),
+    ("\u0107","ć"), ("\u0106","Ć"),
+    ("\u0119","ę"), ("\u0118","Ę"),
+    ("\u0142","ł"), ("\u0141","Ł"),
+    ("\u0144","ń"), ("\u0143","Ń"),
+    ("\u00f3","ó"), ("\u00d3","Ó"),
+    ("\u015b","ś"), ("\u015a","Ś"),
+    ("\u017a","ź"), ("\u0179","Ż"),
+    ("\u017c","ż"), ("\u017b","Ź")
+]
 
+def fix_polish_letters(text):
+    for (a,b) in polish_letters:
+        text = text.replace(a,b)
+    return text
 
 
 def get_product_info():
