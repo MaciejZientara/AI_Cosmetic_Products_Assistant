@@ -112,8 +112,13 @@ def get_product_urls(mode="w"): # mode argument no longer used, TO FIX
 def get_product_info():
     for cat in categories:
         with open(Path(raw_data_dir, cat+".json"), "w") as category_file:
+            first_product = True
+            category_file.write("{\n")
             with open(Path(raw_data_dir, cat+".txt"), "r") as product_links:
                 for i,link in enumerate(product_links): # link per line
+                    if not first_product:
+                        category_file.write(",\n")
+                    first_product = False
                     print("download product:",i)
                     try:
                         response = proxy_req(link)
@@ -151,9 +156,8 @@ def get_product_info():
                     for span_tag in soup.find_all(name = 'span', attrs = {"class" : 'styles-module_capacity--t8nUz'}):
                             product_data["capacity"] = span_tag.text.strip()
                     
-                    category_file.write(i,":",json.dumps(product_data, indent=3))    
-
-        
+                    category_file.write(f'"{i}" : {json.dumps(product_data, indent=3)}')    
+            category_file.write("\n}")
 
 def get_data(rescrap=False):
     if rescrap:
