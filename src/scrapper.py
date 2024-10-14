@@ -21,7 +21,12 @@ proxies = [
     "91.227.66.139:8080",
     "37.220.83.232:3128",
     "37.220.83.139:3128",
-    "188.252.14.7:3128"
+    "188.252.14.7:3128",
+    "79.110.200.148:8081",
+    "79.110.196.145:8081 ",
+    "79.110.202.131:8081",
+    "79.110.201.235:8081",
+    "212.127.93.185:8081",
 ]
 proxy_iter = 0
 
@@ -31,7 +36,7 @@ base_url = "https://www.rossmann.pl"
 category_links = [
     "https://www.rossmann.pl/kategoria/makijaz-i-paznokcie,12000",
     "https://www.rossmann.pl/kategoria/pielegnacja-i-higiena,12001",
-    # "https://www.rossmann.pl/kategoria/wlosy,13174",
+    "https://www.rossmann.pl/kategoria/wlosy,13174",
     # "https://www.rossmann.pl/kategoria/mezczyzna,13224",
     # "https://www.rossmann.pl/kategoria/perfumy,13264",
     # "https://www.rossmann.pl/kategoria/dziecko,13282"
@@ -41,12 +46,26 @@ def clean():
     print("cleaning directory")
     rmtree(raw_data_dir) # remove directory with content
 
+def check_proxies():
+    print("checking proxies")
+    global proxies
+    for proxy in proxies:
+        try:
+            response = requests.get("https://www.google.com/", proxies={"http": proxy, "https": proxy}, timeout=15)
+        except:
+            # proxy doesn't work, remove from list
+            proxies.remove(proxy)
+    print("working proxies count = ", len(proxies))
+    print(proxies)
+
 def proxy_req(url):
+    global proxy_iter
     proxy = proxies[proxy_iter]
     proxy_iter = (proxy_iter + 1) % len(proxies) # cycle through proxies
     return requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=15)
 
 def get_product_urls(mode="w"):
+    global categories
     """
     Get product URLs and save them to a text file.
     :param mode: Writing mode for the file. Defaults to "w" (overwrite). Use "a" to append to the file.
@@ -56,7 +75,7 @@ def get_product_urls(mode="w"):
 
     for cat_link in category_links:
         categories.append(cat_link[cat_link.find("kategoria/") + 10: cat_link.find(",")])
-        # print(name)
+        print("start working on category:", categories[-1])
         page = 0
         while True:
             page += 1 # increase page count to find all products, regardless of category 
@@ -95,6 +114,7 @@ def get_product_info():
         category_data = {}
         with open(Path(raw_data_dir, cat+".txt"), "r") as product_links:
             for i,link in enumerate(product_links): # link per line
+                print("download product:",i)
                 try:
                     response = proxy_req(link)
                 except requests.exceptions.RequestException as e:
@@ -147,5 +167,6 @@ def get_data(rescrap=False):
 
     raw_data_dir.mkdir(parents=True, exist_ok=True)
 
+    check_proxies()
     get_product_urls()
     get_product_info()
