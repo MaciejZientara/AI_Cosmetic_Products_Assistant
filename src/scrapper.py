@@ -111,50 +111,47 @@ def get_product_urls(mode="w"): # mode argument no longer used, TO FIX
 
 def get_product_info():
     for cat in categories:
-        category_data = {}
-        with open(Path(raw_data_dir, cat+".txt"), "r") as product_links:
-            for i,link in enumerate(product_links): # link per line
-                print("download product:",i)
-                try:
-                    response = proxy_req(link)
-                except requests.exceptions.RequestException as e:
-                    print(f"Error fetching {link}: {e}")
-                    continue # skip to the next link if an error occurs
-
-                soup = BeautifulSoup(response.text, 'html.parser')
-                product_data = {}
-
-                # rossmann pages have 3 blocks with <p class="styles-module_productDescriptionContent--76j9I">
-                # with content as follows: description, ingridients and additional information
-                for p_iter,p_tag in enumerate(soup.find_all(name = 'p', attrs = {"class" : 'styles-module_productDescriptionContent--76j9I'})):
-                    match p_iter:
-                        case 0: # description
-                            pass # product_data["description"] = p_tag.text.strip()
-                        case 1: # ingridients
-                            product_data["ingridients"] = p_tag.text.strip()
-                        case 2: # additional information
-                            pass # product_data["info"] = p_tag.text.strip()
-                        case _:
-                            print("found too many p blocks in ", link)
-
-                # in <meta content=... property=...> blocks you can find product name, description, price 
-                for meta_tag in soup.find_all('meta'):
-                    if ("content" in meta_tag.attrs) and ("property" in meta_tag.attrs):
-                        if meta_tag["property"] == "product:price:amount":
-                            product_data["price"] = meta_tag["content"].strip()
-                        if meta_tag["property"] == "og:description":
-                            product_data["description"] = meta_tag["content"].strip()
-                        if meta_tag["property"] == "og:title":
-                            product_data["title"] = meta_tag["content"].strip()
-
-                # block <span class="styles-module_capacity--t8nUz"> XXX </span> holds capacity info, example: "20 ml"
-                for span_tag in soup.find_all(name = 'span', attrs = {"class" : 'styles-module_capacity--t8nUz'}):
-                        product_data["capacity"] = span_tag.text.strip()
-
-                category_data[i] = product_data
-                
         with open(Path(raw_data_dir, cat+".json"), "w") as category_file:
-            category_file.write(json.dumps(category_data, indent=3))    
+            with open(Path(raw_data_dir, cat+".txt"), "r") as product_links:
+                for i,link in enumerate(product_links): # link per line
+                    print("download product:",i)
+                    try:
+                        response = proxy_req(link)
+                    except requests.exceptions.RequestException as e:
+                        print(f"Error fetching {link}: {e}")
+                        continue # skip to the next link if an error occurs
+
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    product_data = {}
+
+                    # rossmann pages have 3 blocks with <p class="styles-module_productDescriptionContent--76j9I">
+                    # with content as follows: description, ingridients and additional information
+                    for p_iter,p_tag in enumerate(soup.find_all(name = 'p', attrs = {"class" : 'styles-module_productDescriptionContent--76j9I'})):
+                        match p_iter:
+                            case 0: # description
+                                pass # product_data["description"] = p_tag.text.strip()
+                            case 1: # ingridients
+                                product_data["ingridients"] = p_tag.text.strip()
+                            case 2: # additional information
+                                pass # product_data["info"] = p_tag.text.strip()
+                            case _:
+                                print("found too many p blocks in ", link)
+
+                    # in <meta content=... property=...> blocks you can find product name, description, price 
+                    for meta_tag in soup.find_all('meta'):
+                        if ("content" in meta_tag.attrs) and ("property" in meta_tag.attrs):
+                            if meta_tag["property"] == "product:price:amount":
+                                product_data["price"] = meta_tag["content"].strip()
+                            if meta_tag["property"] == "og:description":
+                                product_data["description"] = meta_tag["content"].strip()
+                            if meta_tag["property"] == "og:title":
+                                product_data["title"] = meta_tag["content"].strip()
+
+                    # block <span class="styles-module_capacity--t8nUz"> XXX </span> holds capacity info, example: "20 ml"
+                    for span_tag in soup.find_all(name = 'span', attrs = {"class" : 'styles-module_capacity--t8nUz'}):
+                            product_data["capacity"] = span_tag.text.strip()
+                    
+                    category_file.write(i,":",json.dumps(product_data, indent=3))    
 
         
 
