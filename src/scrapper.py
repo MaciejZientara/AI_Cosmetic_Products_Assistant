@@ -9,8 +9,23 @@ from pathlib import Path
 dir_path = os.path.dirname(os.path.dirname(__file__))
 raw_data_dir = Path(dir_path, "data/raw_data")
 
+# found on https://spys.one/free-proxy-list/PL/
+proxies = [
+    "31.42.7.177:8080",
+    "145.239.86.159:8888",
+    "185.28.248.238:8080",
+    "77.237.28.191:8080",
+    "195.8.52.207:8080",
+    "188.128.254.4:3128",
+    "157.25.92.74:3128",
+    "91.227.66.139:8080",
+    "37.220.83.232:3128",
+    "37.220.83.139:3128",
+    "188.252.14.7:3128"
+]
+proxy_iter = 0
+
 categories = []
-json_products = {}
 
 base_url = "https://www.rossmann.pl"
 category_links = [
@@ -25,6 +40,11 @@ category_links = [
 def clean():
     print("cleaning directory")
     rmtree(raw_data_dir) # remove directory with content
+
+def proxy_req(url):
+    proxy = proxies[proxy_iter]
+    proxy_iter = (proxy_iter + 1) % len(proxies) # cycle through proxies
+    return requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=15)
 
 def get_product_urls(mode="w"):
     """
@@ -41,7 +61,7 @@ def get_product_urls(mode="w"):
         while True:
             page += 1 # increase page count to find all products, regardless of category 
             try:
-                response = requests.get(f"{cat_link}?Page={page}")
+                response = proxy_req(f"{cat_link}?Page={page}")
                 response.raise_for_status()
             except requests.exceptions.RequestException as e:
                 print(f"Error fetching page {page} of {cat_link}: {e}")
@@ -76,7 +96,7 @@ def get_product_info():
         with open(Path(raw_data_dir, cat+".txt"), "r") as product_links:
             for i,link in enumerate(product_links): # link per line
                 try:
-                    response = requests.get(link)
+                    response = proxy_req(link)
                 except requests.exceptions.RequestException as e:
                     print(f"Error fetching {link}: {e}")
                     continue # skip to the next link if an error occurs
