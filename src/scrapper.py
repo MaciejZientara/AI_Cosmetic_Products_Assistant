@@ -9,7 +9,7 @@ from pathlib import Path
 dir_path = os.path.dirname(os.path.dirname(__file__))
 raw_data_dir = Path(dir_path, "data/raw_data")
 
-# found on https://spys.one/free-proxy-list/PL/
+USE_PROXY = False
 proxies = [
     "31.42.7.177:8080",
     "145.239.86.159:8888",
@@ -35,8 +35,8 @@ categories = []
 base_url = "https://www.rossmann.pl"
 category_links = [
     "https://www.rossmann.pl/kategoria/makijaz-i-paznokcie,12000",
-    "https://www.rossmann.pl/kategoria/pielegnacja-i-higiena,12001",
-    "https://www.rossmann.pl/kategoria/wlosy,13174",
+    # "https://www.rossmann.pl/kategoria/pielegnacja-i-higiena,12001",
+    # "https://www.rossmann.pl/kategoria/wlosy,13174",
     # "https://www.rossmann.pl/kategoria/mezczyzna,13224",
     # "https://www.rossmann.pl/kategoria/perfumy,13264",
     # "https://www.rossmann.pl/kategoria/dziecko,13282"
@@ -51,7 +51,7 @@ def check_proxies():
     global proxies
     for proxy in proxies:
         try:
-            response = requests.get("https://www.google.com/", proxies={"http": proxy, "https": proxy}, timeout=15)
+            requests.get("https://www.google.com/", proxies={"http": proxy, "https": proxy}, timeout=15)
         except:
             # proxy doesn't work, remove from list
             proxies.remove(proxy)
@@ -60,52 +60,52 @@ def check_proxies():
 
 def proxy_req(url):
     global proxy_iter
-    proxy = proxies[proxy_iter]
+    proxy = proxies[proxy_iter] if USE_PROXY else None
     proxy_iter = (proxy_iter + 1) % len(proxies) # cycle through proxies
     return requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=15)
 
-def get_product_urls(mode="w"):
-    global categories
+def get_product_urls(mode="w"): # mode argument no longer used, TO FIX
     """
     Get product URLs and save them to a text file.
     :param mode: Writing mode for the file. Defaults to "w" (overwrite). Use "a" to append to the file.
     :return: None
     """
+    global categories
     product_links = set()
 
     for cat_link in category_links:
         categories.append(cat_link[cat_link.find("kategoria/") + 10: cat_link.find(",")])
         print("start working on category:", categories[-1])
         page = 0
-        while True:
-            page += 1 # increase page count to find all products, regardless of category 
-            try:
-                response = proxy_req(f"{cat_link}?Page={page}")
-                response.raise_for_status()
-            except requests.exceptions.RequestException as e:
-                print(f"Error fetching page {page} of {cat_link}: {e}")
-                continue # skip to the next page if an error occurs
+        with open(Path(raw_data_dir, categories[-1]+".txt"), "w") as txt_file:
+            while True:
+                page += 1 # increase page count to find all products, regardless of category 
+                try:
+                    response = proxy_req(f"{cat_link}?Page={page}")
+                    response.raise_for_status()
+                except requests.exceptions.RequestException as e:
+                    print(f"Error fetching page {page} of {cat_link}: {e}")
+                    continue # skip to the next page if an error occurs
 
-            soup = BeautifulSoup(response.text, 'html.parser')
+                soup = BeautifulSoup(response.text, 'html.parser')
 
-            product_found = False # flag to track if products are found on the page
-            
-            for a_tag in soup.find_all('a', href=True):
-                href = a_tag['href']
-                if '/Produkt/' in href:
-                    product_links.add(href)
-                    product_found = True # set a flag to True when a product is found
+                product_found = False # flag to track if products are found on the page
+                
+                for a_tag in soup.find_all('a', href=True):
+                    href = a_tag['href']
+                    if '/Produkt/' in href:
+                        product_links.add(href)
+                        product_found = True # set a flag to True when a product is found
 
-            # exit the loop if no products were found on the page
-            if not product_found:
-                break
+                # exit the loop if no products were found on the page
+                if not product_found:
+                    break
 
-        url_list = list(product_links)
-        with open(Path(raw_data_dir, categories[-1]+".txt"), mode) as txt_file:
-            for link in url_list:
-                txt_file.write(base_url + link + "\n")
+                url_list = list(product_links)
+                for link in url_list:
+                    txt_file.write(base_url + link + "\n")
+                product_links.clear()
 
-        product_links.clear()
 
 
 
@@ -167,6 +167,7 @@ def get_data(rescrap=False):
 
     raw_data_dir.mkdir(parents=True, exist_ok=True)
 
-    check_proxies()
+    if USE_PROXY:
+        check_proxies()
     get_product_urls()
     get_product_info()
