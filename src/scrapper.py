@@ -9,26 +9,9 @@ from pathlib import Path
 dir_path = os.path.dirname(os.path.dirname(__file__))
 raw_data_dir = Path(dir_path, "data/raw_data")
 
-USE_PROXY = False
-proxies = [
-    "31.42.7.177:8080",
-    "145.239.86.159:8888",
-    "185.28.248.238:8080",
-    "77.237.28.191:8080",
-    "195.8.52.207:8080",
-    "188.128.254.4:3128",
-    "157.25.92.74:3128",
-    "91.227.66.139:8080",
-    "37.220.83.232:3128",
-    "37.220.83.139:3128",
-    "188.252.14.7:3128",
-    "79.110.200.148:8081",
-    "79.110.196.145:8081 ",
-    "79.110.202.131:8081",
-    "79.110.201.235:8081",
-    "212.127.93.185:8081",
-    "178.255.44.60:42261",
-]
+REQUEST_TIMEOUT = 20
+USE_PROXY = True
+proxies = []
 proxy_iter = 0
 
 categories = []
@@ -60,35 +43,73 @@ def find_categories():
     for cat_link in category_links:
         categories.append(cat_link[cat_link.find("kategoria/") + 10: cat_link.find(",")])
 
-
-def check_proxies():
+# use of https://free-proxy-list.net/ inspired by https://github.com/hamzarana07/multiProxies
+def find_proxies():
     """
     Check the list of available proxies, call rossmann.pl, in case of no response mark proxy as
-    not working and remove from proxies list.
+    not working and do not add to proxies list.
     :return: None
     """
-    print("checking proxies")
-    global proxies
-    for proxy in proxies:
+    print("finding proxies")
+    working_proxies = 0
+    expected_working_proxies = 5#30
+
+    d = requests.get("https://free-proxy-list.net/")
+    soup = BeautifulSoup(d.content, 'html.parser')
+    td_elements = soup.select('.fpl-list .table tbody tr td')
+    check_proxy_count = 0
+    for j in range(0, len(td_elements),8):
+        ip = (td_elements[j].text.strip())
+        port = (td_elements[j + 1].text.strip())
+        use_https = (td_elements[j + 6].text.strip())
+        if use_https == "no":
+            continue
+
+        proxy = f"{ip}:{port}"
+        print(f"checking proxy: {proxy} - ",end="")
         try:
-            requests.get(base_url, proxies={"http": proxy, "https": proxy}, timeout=15)
+            response = requests.get(base_url, proxies={"http": proxy, "https": proxy}, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()
         except:
-            # proxy doesn't work, remove from list
-            proxies.remove(proxy)
+            # proxy doesn't work
+            print("FAIL")
+            continue
+
+        print("PASS")
+        proxies.append(proxy)
+        working_proxies += 1
+        if working_proxies >= expected_working_proxies:
+            break
+
     print("working proxies count = ", len(proxies))
-    print(proxies)
+    # print(proxies)
+
 
 def proxy_req(url):
     """
     Get html response from 'url'. If USE_PROXY flag is set this function will cycle
     through proxies array and use them in request function, otherwise not use proxy.
+    Try to get response from server at most retry_count times.
     :param url: Link to the server to get data from.
-    :return: html response of the url server
+    :return: On success - html response of the url server and True, on Fail - None,False 
     """
     global proxy_iter
-    proxy = proxies[proxy_iter] if USE_PROXY else None
-    proxy_iter = (proxy_iter + 1) % len(proxies) # cycle through proxies
-    return requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=15)
+    retry_count = 10
+    while retry_count > 0:
+        proxy = proxies[proxy_iter] if USE_PROXY and (len(proxies) > 0) else None
+        proxy_iter = (proxy_iter + 1) % len(proxies) # cycle through proxies
+        try:
+            response = requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching {url}: {e}")
+            retry_count -= 1
+            continue # skip to the next link if an error occurs
+        return response, True # succesfully obtained product data
+
+    if retry_count == 0:
+        return None,False # no data obtained
+
 
 def get_product_urls():
     """
@@ -103,12 +124,9 @@ def get_product_urls():
         with open(Path(raw_data_dir, categories[cat_idx]+".txt"), "w", encoding="utf8") as txt_file:
             while True:
                 page += 1 # increase page count to find all products, regardless of category 
-                try:
-                    response = proxy_req(f"{cat_link}?Page={page}")
-                    response.raise_for_status()
-                except requests.exceptions.RequestException as e:
-                    print(f"Error fetching page {page} of {cat_link}: {e}")
-                    continue # skip to the next page if an error occurs
+                response,status = proxy_req(f"{cat_link}?Page={page}")
+                if status == False:
+                    continue # no data obtained
 
                 soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -169,11 +187,9 @@ def get_product_info():
                         category_file.write(",\n")
                     first_product = False
                     print("download product:",i)
-                    try:
-                        response = proxy_req(link)
-                    except requests.exceptions.RequestException as e:
-                        print(f"Error fetching {link}: {e}")
-                        continue # skip to the next link if an error occurs
+                    response,status = proxy_req(link)
+                    if status == False:
+                        continue # no data obtained
 
                     soup = BeautifulSoup(response.text, 'html.parser')
                     product_data = {}
@@ -225,7 +241,7 @@ def get_data(rescrap=False):
     raw_data_dir.mkdir(parents=True, exist_ok=True)
 
     if USE_PROXY:
-        check_proxies()
+        find_proxies()
 
     find_categories()
     get_product_urls()
