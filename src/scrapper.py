@@ -54,7 +54,7 @@ def find_proxies():
     working_proxies = 0
     expected_working_proxies = 5#30
 
-    d = requests.get("https://free-proxy-list.net/")
+    d = requests.get("https://www.socks-proxy.net/")# ("https://free-proxy-list.net/")
     soup = BeautifulSoup(d.content, 'html.parser')
     td_elements = soup.select('.fpl-list .table tbody tr td')
     check_proxy_count = 0
