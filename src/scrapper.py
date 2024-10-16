@@ -27,6 +27,7 @@ proxies = [
     "79.110.202.131:8081",
     "79.110.201.235:8081",
     "212.127.93.185:8081",
+    "178.255.44.60:42261",
 ]
 proxy_iter = 0
 
@@ -35,8 +36,8 @@ categories = []
 base_url = "https://www.rossmann.pl"
 category_links = [
     "https://www.rossmann.pl/kategoria/makijaz-i-paznokcie,12000",
-    # "https://www.rossmann.pl/kategoria/pielegnacja-i-higiena,12001",
-    # "https://www.rossmann.pl/kategoria/wlosy,13174",
+    "https://www.rossmann.pl/kategoria/pielegnacja-i-higiena,12001",
+    "https://www.rossmann.pl/kategoria/wlosy,13174",
     # "https://www.rossmann.pl/kategoria/mezczyzna,13224",
     # "https://www.rossmann.pl/kategoria/perfumy,13264",
     # "https://www.rossmann.pl/kategoria/dziecko,13282"
@@ -62,7 +63,7 @@ def find_categories():
 
 def check_proxies():
     """
-    Check the list of available proxies, call google.com, in case of no response mark proxy as
+    Check the list of available proxies, call rossmann.pl, in case of no response mark proxy as
     not working and remove from proxies list.
     :return: None
     """
@@ -70,7 +71,7 @@ def check_proxies():
     global proxies
     for proxy in proxies:
         try:
-            requests.get("https://www.google.com/", proxies={"http": proxy, "https": proxy}, timeout=15)
+            requests.get(base_url, proxies={"http": proxy, "https": proxy}, timeout=15)
         except:
             # proxy doesn't work, remove from list
             proxies.remove(proxy)
