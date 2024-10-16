@@ -43,16 +43,29 @@ category_links = [
 ]
 
 def clean():
+    """
+    Remove raw data directory with its content.
+    :return: None
+    """
     print("cleaning directory")
     rmtree(raw_data_dir) # remove directory with content
 
 def find_categories():
+    """
+    Parse category_links to get category names and save them in categories list.
+    :return: None
+    """
     global categories
     for cat_link in category_links:
         categories.append(cat_link[cat_link.find("kategoria/") + 10: cat_link.find(",")])
 
 
 def check_proxies():
+    """
+    Check the list of available proxies, call google.com, in case of no response mark proxy as
+    not working and remove from proxies list.
+    :return: None
+    """
     print("checking proxies")
     global proxies
     for proxy in proxies:
@@ -65,15 +78,20 @@ def check_proxies():
     print(proxies)
 
 def proxy_req(url):
+    """
+    Get html response from 'url'. If USE_PROXY flag is set this function will cycle
+    through proxies array and use them in request function, otherwise not use proxy.
+    :param url: Link to the server to get data from.
+    :return: html response of the url server
+    """
     global proxy_iter
     proxy = proxies[proxy_iter] if USE_PROXY else None
     proxy_iter = (proxy_iter + 1) % len(proxies) # cycle through proxies
     return requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=15)
 
-def get_product_urls(mode="w"): # mode argument no longer used, TO FIX
+def get_product_urls():
     """
-    Get product URLs and save them to a text file.
-    :param mode: Writing mode for the file. Defaults to "w" (overwrite). Use "a" to append to the file.
+    Get product URLs and save them to a category_name.txt file.
     :return: None
     """
     product_links = set()
@@ -123,12 +141,23 @@ polish_letters = [
 ]
 
 def fix_polish_letters(text):
+    """
+    Get html response from 'url'. If USE_PROXY flag is set this function will cycle
+    through proxies array and use them in request function, otherwise not use proxy.
+    :param url: Link to the server to get data from.
+    :return: html response of the url server
+    """
     for (a,b) in polish_letters:
         text = text.replace(a,b)
     return text
 
 
 def get_product_info():
+    """
+    Find all category_name.txt file in raw data directory, for each file go through 
+    all urls and save data of individual products into category_name.json files.
+    :return: none
+    """
     for cat in categories:
         with open(Path(raw_data_dir, cat+".json"), "w", encoding="utf8") as category_file:
             first_product = True
@@ -179,6 +208,13 @@ def get_product_info():
             category_file.write("\n}")
 
 def get_data(rescrap=False):
+    """
+    Main function in this module. If raw data directory doesn't exist this function should:
+    - get all product urls for each category in category_links and store them in txt files
+    - get each product data and store it in json files
+    :param resrap: Flag which when set triggers removing raw data directory before gathering data.
+    :return: none
+    """
     if rescrap:
         clean()
     
