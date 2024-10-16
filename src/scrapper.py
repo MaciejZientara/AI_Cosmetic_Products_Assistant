@@ -46,6 +46,12 @@ def clean():
     print("cleaning directory")
     rmtree(raw_data_dir) # remove directory with content
 
+def find_categories():
+    global categories
+    for cat_link in category_links:
+        categories.append(cat_link[cat_link.find("kategoria/") + 10: cat_link.find(",")])
+
+
 def check_proxies():
     print("checking proxies")
     global proxies
@@ -70,14 +76,12 @@ def get_product_urls(mode="w"): # mode argument no longer used, TO FIX
     :param mode: Writing mode for the file. Defaults to "w" (overwrite). Use "a" to append to the file.
     :return: None
     """
-    global categories
     product_links = set()
 
-    for cat_link in category_links:
-        categories.append(cat_link[cat_link.find("kategoria/") + 10: cat_link.find(",")])
-        print("start working on category:", categories[-1])
+    for cat_idx,cat_link in enumerate(category_links):
+        print("start working on category:", categories[cat_idx])
         page = 0
-        with open(Path(raw_data_dir, categories[-1]+".txt"), "w") as txt_file:
+        with open(Path(raw_data_dir, categories[cat_idx]+".txt"), "w", encoding="utf8") as txt_file:
             while True:
                 page += 1 # increase page count to find all products, regardless of category 
                 try:
@@ -126,10 +130,10 @@ def fix_polish_letters(text):
 
 def get_product_info():
     for cat in categories:
-        with open(Path(raw_data_dir, cat+".json"), "w") as category_file:
+        with open(Path(raw_data_dir, cat+".json"), "w", encoding="utf8") as category_file:
             first_product = True
             category_file.write("{\n")
-            with open(Path(raw_data_dir, cat+".txt"), "r") as product_links:
+            with open(Path(raw_data_dir, cat+".txt"), "r", encoding="utf8") as product_links:
                 for i,link in enumerate(product_links): # link per line
                     if not first_product:
                         category_file.write(",\n")
@@ -171,7 +175,7 @@ def get_product_info():
                     for span_tag in soup.find_all(name = 'span', attrs = {"class" : 'styles-module_capacity--t8nUz'}):
                             product_data["capacity"] = span_tag.text.strip()
                     
-                    category_file.write(f'"{i}" : {json.dumps(product_data, indent=3)}')    
+                    category_file.write(f'"{i}" : {json.dumps(product_data, indent=3, ensure_ascii=False)}')    
             category_file.write("\n}")
 
 def get_data(rescrap=False):
@@ -185,5 +189,7 @@ def get_data(rescrap=False):
 
     if USE_PROXY:
         check_proxies()
+
+    find_categories()
     get_product_urls()
     get_product_info()
