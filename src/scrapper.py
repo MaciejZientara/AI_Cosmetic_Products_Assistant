@@ -218,7 +218,7 @@ def get_product_info():
                         continue # no data obtained
 
                     soup = BeautifulSoup(response.text, 'html.parser')
-                    product_data = {}
+                    product_data = {"url":link}
 
                     # rossmann pages have 3 blocks with <p class="styles-module_productDescriptionContent--76j9I">
                     # with content as follows: description, ingridients and additional information
