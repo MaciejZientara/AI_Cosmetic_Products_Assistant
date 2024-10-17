@@ -3,6 +3,7 @@ import json
 import requests
 import requests.exceptions
 from bs4 import BeautifulSoup
+import datetime
 from shutil import rmtree
 from pathlib import Path
 
@@ -51,6 +52,8 @@ def find_proxies():
     :return: None
     """
     print("finding proxies")
+    global proxies
+    proxies.clear()
     working_proxies = 0
     expected_working_proxies = 5#30
 
@@ -58,7 +61,6 @@ def find_proxies():
     # ("https://www.socks-proxy.net/")
     soup = BeautifulSoup(d.content, 'html.parser')
     td_elements = soup.select('.fpl-list .table tbody tr td')
-    check_proxy_count = 0
     for j in range(0, len(td_elements),8):
         ip = (td_elements[j].text.strip())
         port = (td_elements[j + 1].text.strip())
@@ -111,6 +113,19 @@ def proxy_req(url):
     if retry_count == 0:
         return None,False # no data obtained
 
+def proxies_failing():
+    """
+    Check the list of proxies, call rossmann.pl, in case of no response return True (proxies failed), 
+    when all proxies pass return False.
+    :return: Bool, as in description
+    """
+    for proxy in proxies:
+        try:
+            response = requests.get(base_url, proxies={"http": proxy, "https": proxy}, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()
+        except:
+            return True
+    return False
 
 def get_product_urls():
     """
@@ -176,14 +191,24 @@ def get_product_info():
     """
     Find all category_name.txt file in raw data directory, for each file go through 
     all urls and save data of individual products into category_name.json files.
+    Every 5 minutes check if proxies still work, if not and also every 30 minutes 
+    look for new proxy servers.
     :return: none
     """
+    timestamp = datetime.datetime.now()
     for cat in categories:
         with open(Path(raw_data_dir, cat+".json"), "w", encoding="utf8") as category_file:
             first_product = True
             category_file.write("{\n")
             with open(Path(raw_data_dir, cat+".txt"), "r", encoding="utf8") as product_links:
                 for i,link in enumerate(product_links): # link per line
+                    time_delta = datetime.datetime.now() - timestamp
+                    minutes = int(time_delta.seconds / 60)
+                    if minutes >= 5:
+                        if proxies_failing() or (minutes >= 30):
+                            find_proxies()
+                            timestamp = datetime.datetime.now()
+
                     if not first_product:
                         category_file.write(",\n")
                     first_product = False
