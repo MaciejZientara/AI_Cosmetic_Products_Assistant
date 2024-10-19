@@ -53,6 +53,8 @@ def find_proxies():
     """
     print("finding proxies")
     global proxies
+    global proxy_iter
+    proxy_iter = 0
     proxies.clear()
     working_proxies = 0
     expected_working_proxies = 5#30
