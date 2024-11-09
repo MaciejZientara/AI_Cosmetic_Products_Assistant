@@ -60,6 +60,9 @@ class customGUI(object):
             padding.deleteLater()
             padding = None
 
+    def resetConsole(self):
+        self.clearConsole()
+        self.initConsole()
 
     def addTextLabel(self, text, side):
         label = QtWidgets.QLabel(self.Console)
@@ -131,6 +134,7 @@ class customGUI(object):
 
     def connectSignals(self):
         self.textInput.returnPressed.connect(self.processInput)
+        self.ClearButton.clicked.connect(self.resetConsole)
 
 
 class CustomWindow(QtWidgets.QWidget,customGUI):
