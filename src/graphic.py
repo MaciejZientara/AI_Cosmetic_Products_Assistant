@@ -10,21 +10,31 @@ class customGUI(object):
         self.windowGrid = QtWidgets.QGridLayout(Window)
         self.windowGrid.setObjectName("windowGrid")
 
+        # addWidget( a0: QWidget, row: int, column: int, rowSpan: int, columnSpan: int, alignment: Alignment | AlignmentFlag)
+
         self.DownloadDataButton = QtWidgets.QPushButton(Window)
         self.DownloadDataButton.setObjectName("DownloadData")
+        self.DownloadDataButton.setText("Download Data")
         self.windowGrid.addWidget(self.DownloadDataButton, 0, 0, 1, 1)
         
         self.ClearButton = QtWidgets.QPushButton(Window)
         self.ClearButton.setObjectName("Clear")
-        self.windowGrid.addWidget(self.ClearButton, 0, 2, 1, 1)
+        self.ClearButton.setText("Clear")
+        self.windowGrid.addWidget(self.ClearButton, 0, 1, 1, 1)
         
         self.ProcessDataButton = QtWidgets.QPushButton(Window)
         self.ProcessDataButton.setObjectName("ProcessData")
-        self.windowGrid.addWidget(self.ProcessDataButton, 0, 1, 1, 1)
-        
+        self.ProcessDataButton.setText("Process Data")
+        self.windowGrid.addWidget(self.ProcessDataButton, 1, 0, 1, 1)
+
+        self.SaveConsoleButton = QtWidgets.QPushButton(Window)
+        self.SaveConsoleButton.setObjectName("SaveConsole")
+        self.SaveConsoleButton.setText("Save Console")
+        self.windowGrid.addWidget(self.SaveConsoleButton, 1, 1, 1, 1)
+
         self.textInput = QtWidgets.QLineEdit(Window)
         self.textInput.setObjectName("textInput")
-        self.windowGrid.addWidget(self.textInput, 2, 0, 1, 3)
+        self.windowGrid.addWidget(self.textInput, 3, 0, 1, 2)
         
         self.Console = QtWidgets.QScrollArea(Window)
         self.ConsoleLayoutHolder = QtWidgets.QWidget()
@@ -38,11 +48,10 @@ class customGUI(object):
         
         self.ConsoleLayout = QtWidgets.QVBoxLayout(self.ConsoleLayoutHolder)
         self.ConsoleLayout.setObjectName("ConsoleLayout")
-        self.windowGrid.addWidget(self.Console, 1, 0, 1, 3)
+        self.windowGrid.addWidget(self.Console, 2, 0, 1, 2)
 
         self.initConsole()
 
-        self.retranslateUi(Window)
         QtCore.QMetaObject.connectSlotsByName(Window)
 
 
@@ -63,6 +72,12 @@ class customGUI(object):
     def resetConsole(self):
         self.clearConsole()
         self.initConsole()
+
+    def keepScrollDown(self):
+        self.Console.verticalScrollBar().setValue(
+            self.Console.verticalScrollBar().maximum()
+        )
+
 
     def addTextLabel(self, text, side):
         label = QtWidgets.QLabel(self.Console)
@@ -111,16 +126,12 @@ class customGUI(object):
         itemLayout.addWidget(labelDescr,    0, 1, 1, 1)
         itemLayout.addWidget(labelCost,     1, 0, 1, 1)
         itemLayout.addWidget(labelQuantity, 1, 1, 1, 1)
-        
 
-    def retranslateUi(self, Window):
-        _translate = QtCore.QCoreApplication.translate
-        Window.setWindowTitle(_translate("Window", "CosmeticAssistant"))
-        self.DownloadDataButton.setText(_translate("Window", "Download Data"))
-        self.ClearButton.setText(_translate("Window", "Clear"))
-        self.ProcessDataButton.setText(_translate("Window", "Process Data"))
         
     def processInput(self):
+        if self.textInput.text() == "":
+            return # do not process empty input text
+
         if self.paddingCount > 0:
             self.paddingCount -= 1
             padding = self.ConsoleLayout.itemAt(0).widget()
@@ -135,12 +146,16 @@ class customGUI(object):
     def connectSignals(self):
         self.textInput.returnPressed.connect(self.processInput)
         self.ClearButton.clicked.connect(self.resetConsole)
+        self.Console.verticalScrollBar().rangeChanged.connect(self.keepScrollDown)
+        # self.DownloadDataButton.clicked.connect(self.)
+        # self.ProcessDataButton.clicked.connect(self.)
 
 
 class CustomWindow(QtWidgets.QWidget,customGUI):
     def __init__(self, parent = None,):
         super().__init__(parent)
         # self.setObjectName("Window")
+        self.setWindowTitle("CosmeticAssistant")
         self.resize(880, 840)
         self.setupUi(self)
         self.connectSignals()
