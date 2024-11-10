@@ -1,8 +1,27 @@
 import global_vars
-from PyQt5.QtWidgets import QApplication
 from sys import exit, argv
+from scrapper import isDataPresent, get_data
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+
+
+class CustomDialog(QtWidgets.QMessageBox):
+    existingDialog = None
+
+    def __init__(self, title, msg):
+        if self.existingDialog != None:
+            self.existingDialog.deleteLater()
+            self.existingDialog = None
+
+        super().__init__()
+        self.existingDialog = self
+
+        self.setWindowTitle(title)
+        self.setText(msg)
+
+        self.setIcon(QtWidgets.QMessageBox.Question)
+
+        self.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
 
 
 class customGUI(object):
@@ -143,12 +162,43 @@ class customGUI(object):
         # pass text to AI
         self.textInput.clear()
 
+    def downloadButtonFunction(self):
+        rescrap = False
+        if isDataPresent():
+            dialogResponse = CustomDialog(
+                "Data already exists",
+                "Data already exists in data directory. Do you want to delete existing data and download new data?"
+                ).exec()
+            
+            if dialogResponse == QtWidgets.QMessageBox.No:
+                return
+            
+            rescrap = True
+
+        get_data(rescrap)
+
+
+    def processButtonFunction(self):
+        if not isDataPresent():
+            dialog = CustomDialog(
+                "Data missing",
+                "No data found in data directory. Do you want to download data now?"
+                ).exec()
+            
+            if dialog == QtWidgets.QMessageBox.Yes:
+                get_data()
+            else:
+                return
+
+        print("processData")
+
+
     def connectSignals(self):
         self.textInput.returnPressed.connect(self.processInput)
         self.ClearButton.clicked.connect(self.resetConsole)
         self.Console.verticalScrollBar().rangeChanged.connect(self.keepScrollDown)
-        # self.DownloadDataButton.clicked.connect(self.)
-        # self.ProcessDataButton.clicked.connect(self.)
+        self.DownloadDataButton.clicked.connect(self.downloadButtonFunction)
+        self.ProcessDataButton.clicked.connect(self.processButtonFunction)
 
 
 class CustomWindow(QtWidgets.QWidget,customGUI):
@@ -165,7 +215,7 @@ class CustomWindow(QtWidgets.QWidget,customGUI):
 
 # to get python code from app_design.ui run: pyuic5 app_design.ui
 def run_app(args):
-  app = QApplication([])
+  app = QtWidgets.QApplication([])
   win = CustomWindow()
   win.show()
   exit(app.exec_()) # close python script on app exit

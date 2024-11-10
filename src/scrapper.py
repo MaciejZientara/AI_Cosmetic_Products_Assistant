@@ -252,6 +252,9 @@ def get_product_info():
                     category_file.write(f'"{i}" : {json.dumps(product_data, indent=3, ensure_ascii=False)}')    
             category_file.write("\n}")
 
+def isDataPresent():
+    return os.path.exists(raw_data_dir)
+
 def get_data(rescrap=False):
     """
     Main function in this module. If raw data directory doesn't exist this function should:
@@ -263,7 +266,7 @@ def get_data(rescrap=False):
     if rescrap:
         clean()
     
-    if os.path.exists(raw_data_dir):
+    if isDataPresent():
         return # if data present, do not scrap again
 
     raw_data_dir.mkdir(parents=True, exist_ok=True)
