@@ -16,7 +16,6 @@ def main():
     scrapper.clean()
     exit(0)
 
-  scrapper.get_data(args.rescrap)
   graphic.run_app(args)
 
 ####################### main ####################### 
