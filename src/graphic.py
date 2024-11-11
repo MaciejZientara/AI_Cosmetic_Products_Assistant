@@ -1,6 +1,8 @@
 import global_vars
 import logger
 import webbrowser
+from pathlib import Path
+from os.path import dirname
 from sys import exit, argv
 from scrapper import isDataPresent, get_data
 
@@ -69,6 +71,22 @@ class console(QtWidgets.QScrollArea):
             self.verticalScrollBar().maximum()
         )
 
+    def saveConsoleToFile(self):
+        dir_path = dirname(dirname(__file__))
+        with open(Path(dir_path, "consolLog.txt"), "w", encoding="utf8") as txt_file:
+            for i in range(self.ConsoleLayout.count()): 
+                widget = self.ConsoleLayout.itemAt(i).widget()
+                if type(widget) == QtWidgets.QPushButton: # itemObject
+                    txt_file.write("Product: " + widget.objectName())
+                else: # label -> AI/User message
+                    if "AI" in widget.objectName():
+                        txt_file.write("AI: " + widget.text())
+                    elif "USER" in widget.objectName():
+                        txt_file.write("USER: " + widget.text())
+                    else:
+                        continue # padding, skip saving to file
+                txt_file.write("\n")
+
 
     def addTextLabel(self, text, side):
         label = QtWidgets.QLabel(self)
@@ -77,10 +95,10 @@ class console(QtWidgets.QScrollArea):
         label.setAutoFillBackground(True)
         if side == "USER":
             label.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-            # label.setObjectName("UserMsg")
+            label.setObjectName("USER_Msg")
         elif side == "AI":
             label.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
-            # label.setObjectName("AiMsg")
+            label.setObjectName("AI_Msg")
         else:
             pass # incorrect side argument
         label.setText(text)
@@ -93,7 +111,7 @@ class console(QtWidgets.QScrollArea):
 
     def addItemObject(self, item):
         itemObject = QtWidgets.QPushButton(self)
-        # itemObject.setObjectName("Item")
+        itemObject.setObjectName(item["url"])
         self.ConsoleLayout.addWidget(itemObject)
         itemLayout = QtWidgets.QGridLayout(itemObject)
 
@@ -246,6 +264,7 @@ class customGUI(object):
         self.ClearButton.clicked.connect(self.Console.resetConsole)
         self.DownloadDataButton.clicked.connect(self.downloadButtonFunction)
         self.ProcessDataButton.clicked.connect(self.processButtonFunction)
+        self.SaveConsoleButton.clicked.connect(self.Console.saveConsoleToFile)
 
 
 class CustomWindow(QtWidgets.QWidget,customGUI):
