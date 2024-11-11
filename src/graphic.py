@@ -1,5 +1,6 @@
 import global_vars
 import logger
+import webbrowser
 from sys import exit, argv
 from scrapper import isDataPresent, get_data
 
@@ -49,7 +50,8 @@ class console(QtWidgets.QScrollArea):
         for i in range(self.paddingCount):
             self.addTextLabel("","") # empty labels
 
-        self.addTextLabel("Hello!","AI")
+        # Add check for downloaded data and processed (inform to click buttons)
+        self.addTextLabel("Witaj! Jak mogę ci pomóc?","AI")
 
     def clearConsole(self):
         for i in reversed(range(self.ConsoleLayout.count())): 
@@ -95,28 +97,65 @@ class console(QtWidgets.QScrollArea):
         self.ConsoleLayout.addWidget(itemObject)
         itemLayout = QtWidgets.QGridLayout(itemObject)
 
+        #                                    Horizontal                         Vertical
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+
+        itemObject.setSizePolicy(size_policy)
+        itemObject.setMinimumHeight(50)
+
         labelName = QtWidgets.QLabel(itemObject)
         labelName.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
-        labelName.setText()
+        labelName.setText(item["title"])
+        labelName.setSizePolicy(size_policy)
+        labelName.setMinimumHeight(25)
+        labelName.setWordWrap(True)
+        labelName.setMinimumSize(labelName.sizeHint())
 
         labelCost = QtWidgets.QLabel(itemObject)
         labelCost.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        labelCost.setText()
+        labelCost.setText(item["price"]+" zł")
+        labelCost.setSizePolicy(size_policy)
+        labelCost.setMinimumHeight(25)
+        labelCost.setWordWrap(True)
 
         labelDescr = QtWidgets.QLabel(itemObject)
         labelDescr.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
-        labelDescr.setText()
+        labelDescr.setText(item["description"])
+        labelDescr.setSizePolicy(size_policy)
+        labelDescr.setMinimumHeight(25)
+        labelDescr.setWordWrap(True)
+        labelDescr.setMinimumSize(labelDescr.sizeHint())
 
         labelQuantity = QtWidgets.QLabel(itemObject)
         labelQuantity.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        labelQuantity.setText()
+        labelQuantity.setText(item["capacity"])
+        labelQuantity.setSizePolicy(size_policy)
+        labelQuantity.setMinimumHeight(25)
+        labelQuantity.setWordWrap(True)
 
-        itemLayout.addWidget(labelName,     0, 0, 1, 1)
-        itemLayout.addWidget(labelDescr,    0, 1, 1, 1)
-        itemLayout.addWidget(labelCost,     1, 0, 1, 1)
-        itemLayout.addWidget(labelQuantity, 1, 1, 1, 1)
+        itemLayout.addWidget(labelName,     0, 0, 1, 4)
+        itemLayout.addWidget(labelDescr,    1, 0, 1, 4)
+        itemLayout.addWidget(labelCost,     0, 4, 1, 1)
+        itemLayout.addWidget(labelQuantity, 1, 4, 1, 1)
+        
+        itemObject.updateGeometry()
+        itemObject.clicked.connect(lambda: webbrowser.open(item["url"]))
+
 
     def processInput(self):
+        # if self.textInput.text() == "": # used to test addItemObject
+        #     self.addItemObject(
+        #         {
+        #             "ingridients": "Isododecane, Hydrogenated Polyisobutene, Mica, Hydrogenated Polydecene, Quaternium-18 Bentonite, Parfum, Sorbitan Isostearate, Caprylyl Glycol, Phenoxyethanol, Ethylhexylglycerin, Limnanthes Alba Seed Oil, Camellia Japonica Seed Oil, Simmondsia Chinensis Seed Oil, Olea Europaea Fruit Oil, Benzyl Alcohol, Benzyl Salicylate, Cinnamyl Alcohol, Citronellol, Eugenol, Geraniol, Linalool, [+/-: CI 77891, CI 45410, CI 15850].",
+        #             "title": "WIBO Lady of My Heart  róż do policzków, w formie kwiatu róży, nr 2;",
+        #             "price": "49.99",
+        #             "url": "https://www.rossmann.pl/Produkt/Lakiery-hybrydowe/Hi-Hybrid-Easy-3in1-lakier-hybrydowy-602-Pink-Lemonade-5-ml,2095288,13032",
+        #             "description": "Delikatnie rozświetlający róż do policzków Lady of My Heart to produkt utrzymany w ciepłej tonacji, inspirowany płatkami kwiatów róży.\nMocno napigmentowana",
+        #             "capacity": "10 g"
+        #         }
+        #     )
+        #     return
+
         if self.textInput.text() == "":
             return # do not process empty input text
 
@@ -137,6 +176,7 @@ class customGUI(object):
         self.windowGrid = QtWidgets.QGridLayout(Window)
         self.windowGrid.setObjectName("windowGrid")
 
+        # when adding widget to grid:
         # addWidget( a0: QWidget, row: int, column: int, rowSpan: int, columnSpan: int, alignment: Alignment | AlignmentFlag)
 
         self.DownloadDataButton = QtWidgets.QPushButton(Window)
