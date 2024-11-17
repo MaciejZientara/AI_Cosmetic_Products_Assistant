@@ -4,7 +4,7 @@ import webbrowser
 from pathlib import Path
 from os.path import dirname
 from sys import exit, argv
-from scrapper import isDataPresent, get_data
+from scrapper import is_data_present, get_data
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -229,7 +229,7 @@ class customGUI(object):
 
     def downloadButtonFunction(self):
         rescrap = False
-        if isDataPresent():
+        if is_data_present():
             dialogResponse = CustomDialog(
                 "Data already exists",
                 "Data already exists in data directory. Do you want to delete existing data and download new data?"
@@ -244,7 +244,7 @@ class customGUI(object):
 
 
     def processButtonFunction(self):
-        if not isDataPresent():
+        if not is_data_present():
             dialog = CustomDialog(
                 "Data missing",
                 "No data found in data directory. Do you want to download data now?"

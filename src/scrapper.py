@@ -247,7 +247,7 @@ def get_data(rescrap=False):
     Main function in this module. If raw data directory doesn't exist this function should:
     - get all product urls for each category in category_links and store them in txt files
     - get each product data and store it in json files
-    :param resrap: Flag which when set triggers removing raw data directory before gathering data.
+    :param rescrap: Flag which when set triggers removing raw data directory before gathering data.
     :return: none
     """
     if rescrap:
