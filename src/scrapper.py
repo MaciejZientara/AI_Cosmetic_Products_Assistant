@@ -8,6 +8,7 @@ from shutil import rmtree
 from pathlib import Path
 from logger import logMsg
 
+
 dir_path = os.path.dirname(os.path.dirname(__file__))
 raw_data_dir = Path(dir_path, "data/raw_data")
 
@@ -23,10 +24,11 @@ category_links = [
     "https://www.rossmann.pl/kategoria/makijaz-i-paznokcie,12000",
     "https://www.rossmann.pl/kategoria/pielegnacja-i-higiena,12001",
     "https://www.rossmann.pl/kategoria/wlosy,13174",
-    # "https://www.rossmann.pl/kategoria/mezczyzna,13224",
+    "https://www.rossmann.pl/kategoria/mezczyzna,13224",
     # "https://www.rossmann.pl/kategoria/perfumy,13264",
     # "https://www.rossmann.pl/kategoria/dziecko,13282"
 ]
+
 
 def clean():
     """
@@ -36,6 +38,7 @@ def clean():
     logMsg("cleaning directory")
     rmtree(raw_data_dir) # remove directory with content
 
+
 def find_categories():
     """
     Parse category_links to get category names and save them in categories list.
@@ -44,6 +47,7 @@ def find_categories():
     global categories
     for cat_link in category_links:
         categories.append(cat_link[cat_link.find("kategoria/") + 10: cat_link.find(",")])
+
 
 # use of https://free-proxy-list.net/ inspired by https://github.com/hamzarana07/multiProxies
 def find_proxies():
@@ -103,7 +107,8 @@ def proxy_req(url):
     retry_count = 10
     while retry_count > 0:
         proxy = proxies[proxy_iter] if USE_PROXY and (len(proxies) > 0) else None
-        proxy_iter = (proxy_iter + 1) % len(proxies) # cycle through proxies
+        if len(proxies) > 0:
+            proxy_iter = (proxy_iter + 1) % len(proxies) # cycle through proxies
         try:
             response = requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
@@ -114,8 +119,9 @@ def proxy_req(url):
         return response, True # succesfully obtained product data
 
     if retry_count == 0:
-        return None,False # no data obtained
+        return None, False # no data obtained
 
+    
 def proxies_failing():
     """
     Check the list of proxies, call rossmann.pl, in case of no response return True (proxies failed), 
@@ -129,6 +135,7 @@ def proxies_failing():
         except:
             return True
     return False
+
 
 def get_product_urls():
     """
@@ -165,29 +172,6 @@ def get_product_urls():
                 for link in url_list:
                     txt_file.write(base_url + link + "\n")
                 product_links.clear()
-
-polish_letters = [
-    ("\u0105","ą"), ("\u0104","Ą"),
-    ("\u0107","ć"), ("\u0106","Ć"),
-    ("\u0119","ę"), ("\u0118","Ę"),
-    ("\u0142","ł"), ("\u0141","Ł"),
-    ("\u0144","ń"), ("\u0143","Ń"),
-    ("\u00f3","ó"), ("\u00d3","Ó"),
-    ("\u015b","ś"), ("\u015a","Ś"),
-    ("\u017a","ź"), ("\u0179","Ż"),
-    ("\u017c","ż"), ("\u017b","Ź")
-]
-
-def fix_polish_letters(text):
-    """
-    Get html response from 'url'. If USE_PROXY flag is set this function will cycle
-    through proxies array and use them in request function, otherwise not use proxy.
-    :param url: Link to the server to get data from.
-    :return: html response of the url server
-    """
-    for (a,b) in polish_letters:
-        text = text.replace(a,b)
-    return text
 
 
 def get_product_info():
@@ -253,8 +237,10 @@ def get_product_info():
                     category_file.write(f'"{i}" : {json.dumps(product_data, indent=3, ensure_ascii=False)}')    
             category_file.write("\n}")
 
-def isDataPresent():
+
+def is_data_present():
     return os.path.exists(raw_data_dir)
+
 
 def get_data(rescrap=False):
     """
@@ -267,7 +253,7 @@ def get_data(rescrap=False):
     if rescrap:
         clean()
     
-    if isDataPresent():
+    if is_data_present():
         return # if data present, do not scrap again
 
     raw_data_dir.mkdir(parents=True, exist_ok=True)
