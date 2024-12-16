@@ -18,26 +18,14 @@ proxy_iter = 0
 
 categories = []
 
-base_url = "https://www.hebe.pl"
+base_url = "https://www.rossmann.pl"
 category_links = [
-    "https://www.hebe.pl/skladniki-kosmetykow/",
-    "https://www.hebe.pl/kosmetyki-do-makijazu/",
-    "https://www.hebe.pl/twarz/",
-    "https://www.hebe.pl/wlosy/",
-    "https://www.hebe.pl/cialo/",
-    "https://www.hebe.pl/zapachy/",
-    "https://www.hebe.pl/paznokcie/",
-    "https://www.hebe.pl/higiena/",
-    # "https://www.hebe.pl/zdrowie/",
-    "https://www.hebe.pl/kosmetyki-azjatyckie/",
-    "https://www.hebe.pl/dermokosmetyki/",
-    "https://www.hebe.pl/kosmetyki-naturalne/",
-    # "https://www.hebe.pl/mama-i-dziecko/",
-    # "https://www.hebe.pl/mezczyzna/",
-    # "https://www.hebe.pl/elektronika/",
-    # "https://www.hebe.pl/lifestyle/",
-    # "https://www.hebe.pl/zestawy/",
-    # "https://www.hebe.pl/produkty-drogeryjne/",
+    "https://www.rossmann.pl/kategoria/makijaz-i-paznokcie,12000",
+    "https://www.rossmann.pl/kategoria/pielegnacja-i-higiena,12001",
+    "https://www.rossmann.pl/kategoria/wlosy,13174",
+    # "https://www.rossmann.pl/kategoria/mezczyzna,13224",
+    # "https://www.rossmann.pl/kategoria/perfumy,13264",
+    # "https://www.rossmann.pl/kategoria/dziecko,13282"
 ]
 
 def clean():
@@ -55,7 +43,7 @@ def find_categories():
     """
     global categories
     for cat_link in category_links:
-        categories.append(cat_link[cat_link.find("hebe.pl/") + 8: ])
+        categories.append(cat_link[cat_link.find("kategoria/") + 10: cat_link.find(",")])
 
 # use of https://free-proxy-list.net/ inspired by https://github.com/hamzarana07/multiProxies
 def find_proxies():
@@ -148,40 +136,58 @@ def get_product_urls():
     :return: None
     """
     product_links = set()
-    for cat_idx,cat_link in enumerate(category_links):
 
+    for cat_idx,cat_link in enumerate(category_links):
         logMsg(f"start working on category: {categories[cat_idx]}")
+        page = 0
         with open(Path(raw_data_dir, categories[cat_idx]+".txt"), "w", encoding="utf8") as txt_file:
-            page = 0
-            start_product_idx = 0
-            response,status = proxy_req(cat_link)
-            tmp = soup.find_all(name = 'div', attrs = {"class" : 'category-controls__total-items'})[0].text.strip()
-            total_products = int(tmp[tmp.find("w: ") + 3:])
-                
-            fail_counter = 0
-            while start_product_idx < total_products:
-                response,status = proxy_req(f"{cat_link}?start={0 if page==0 else 19+21*(page-1)}&sz=21")
-                if status == False and fail_counter < 5:
-                    fail_counter += 1
+            while True:
+                page += 1 # increase page count to find all products, regardless of category 
+                response,status = proxy_req(f"{cat_link}?Page={page}")
+                if status == False:
                     continue # no data obtained
-                fail_counter = 0
-                page += 1
 
                 soup = BeautifulSoup(response.text, 'html.parser')
+
+                product_found = False # flag to track if products are found on the page
                 
-                for a_tag in soup.find_all(name = 'a', href=True, attrs = {"class" : 'product-tile__name'}):
+                for a_tag in soup.find_all('a', href=True):
                     href = a_tag['href']
-                    product_links.add(href)
+                    if '/Produkt/' in href:
+                        product_links.add(href)
+                        product_found = True # set a flag to True when a product is found
 
-                page += 1 # increase page count to find all products, regardless of category 
+                # exit the loop if no products were found on the page
+                if not product_found:
+                    break
 
-            url_list = list(product_links)
-            for link in url_list:
-                txt_file.write(base_url + link + "\n")
-            
-            print(f"Found {len(product_links)} out of {total_products} products in category {categories[cat_idx]}.")
-            product_links.clear()
+                url_list = list(product_links)
+                for link in url_list:
+                    txt_file.write(base_url + link + "\n")
+                product_links.clear()
 
+polish_letters = [
+    ("\u0105","ą"), ("\u0104","Ą"),
+    ("\u0107","ć"), ("\u0106","Ć"),
+    ("\u0119","ę"), ("\u0118","Ę"),
+    ("\u0142","ł"), ("\u0141","Ł"),
+    ("\u0144","ń"), ("\u0143","Ń"),
+    ("\u00f3","ó"), ("\u00d3","Ó"),
+    ("\u015b","ś"), ("\u015a","Ś"),
+    ("\u017a","ź"), ("\u0179","Ż"),
+    ("\u017c","ż"), ("\u017b","Ź")
+]
+
+def fix_polish_letters(text):
+    """
+    Get html response from 'url'. If USE_PROXY flag is set this function will cycle
+    through proxies array and use them in request function, otherwise not use proxy.
+    :param url: Link to the server to get data from.
+    :return: html response of the url server
+    """
+    for (a,b) in polish_letters:
+        text = text.replace(a,b)
+    return text
 
 
 def get_product_info():
