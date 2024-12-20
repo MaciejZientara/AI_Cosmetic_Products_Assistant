@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import datetime
 from shutil import rmtree
 from pathlib import Path
-from logger import logMsg
+from logger import log_msg
 
 dir_path = os.path.dirname(os.path.dirname(__file__))
 raw_data_dir = Path(dir_path, "data/raw_data")
@@ -45,7 +45,7 @@ def clean():
     Remove raw data directory with its content.
     :return: None
     """
-    logMsg("cleaning directory")
+    log_msg("cleaning directory")
     rmtree(raw_data_dir) # remove directory with content
 
 def find_categories():
@@ -64,7 +64,7 @@ def find_proxies():
     not working and do not add to proxies list.
     :return: None
     """
-    logMsg("finding proxies")
+    log_msg("finding proxies")
     global proxies
     global proxy_iter
     proxy_iter = 0
@@ -84,23 +84,23 @@ def find_proxies():
             continue
 
         proxy = f"{ip}:{port}"
-        logMsg(f"checking proxy: {proxy}")
+        log_msg(f"checking proxy: {proxy}")
         try:
             response = requests.get(base_url, proxies={"http": proxy, "https": proxy}, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
         except:
             # proxy doesn't work
-            logMsg("FAIL")
+            log_msg("FAIL")
             continue
 
-        logMsg("PASS")
+        log_msg("PASS")
         proxies.append(proxy)
         working_proxies += 1
         if working_proxies >= expected_working_proxies:
             break
 
-    logMsg(f"working proxies count = {len(proxies)}")
-    # logMsg(proxies)
+    log_msg(f"working proxies count = {len(proxies)}")
+    # log_msg(proxies)
 
 
 def proxy_req(url):
@@ -120,7 +120,7 @@ def proxy_req(url):
             response = requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            logMsg(f"Error fetching {url}: {e}")
+            log_msg(f"Error fetching {url}: {e}")
             retry_count -= 1
             continue # skip to the next link if an error occurs
         return response, True # succesfully obtained product data
@@ -150,11 +150,12 @@ def get_product_urls():
     product_links = set()
     for cat_idx,cat_link in enumerate(category_links):
 
-        logMsg(f"start working on category: {categories[cat_idx]}")
+        log_msg(f"start working on category: {categories[cat_idx]}")
         with open(Path(raw_data_dir, categories[cat_idx]+".txt"), "w", encoding="utf8") as txt_file:
             page = 0
             start_product_idx = 0
             response,status = proxy_req(cat_link)
+            soup = BeautifulSoup(response.text, 'html.parser')
             tmp = soup.find_all(name = 'div', attrs = {"class" : 'category-controls__total-items'})[0].text.strip()
             total_products = int(tmp[tmp.find("w: ") + 3:])
                 
@@ -179,7 +180,7 @@ def get_product_urls():
             for link in url_list:
                 txt_file.write(base_url + link + "\n")
             
-            print(f"Found {len(product_links)} out of {total_products} products in category {categories[cat_idx]}.")
+            log_msg(f"Found {len(product_links)} out of {total_products} products in category {categories[cat_idx]}.")
             product_links.clear()
 
 
@@ -198,6 +199,9 @@ def get_product_info():
             first_product = True
             category_file.write("{\n")
             with open(Path(raw_data_dir, cat+".txt"), "r", encoding="utf8") as product_links:
+                total_product_count = 0
+                successful_product_count = 0
+
                 for i,link in enumerate(product_links): # link per line
                     time_delta = datetime.datetime.now() - timestamp
                     minutes = int(time_delta.seconds / 60)
@@ -209,42 +213,63 @@ def get_product_info():
                     if not first_product:
                         category_file.write(",\n")
                     first_product = False
-                    logMsg(f"download product: {i}")
+                    log_msg(f"download product: {i}")
+                    total_product_count += 1
                     response,status = proxy_req(link)
                     if status == False:
                         continue # no data obtained
+                    successful_product_count += 1
 
                     soup = BeautifulSoup(response.text, 'html.parser')
                     product_data = {"url":link}
 
-                    # rossmann pages have 3 blocks with <p class="styles-module_productDescriptionContent--76j9I">
+                    # hebe pages have 3 blocks with <div class="js-navbar-section product-container__section" id="...">
                     # with content as follows: description, ingridients and additional information
-                    for p_iter,p_tag in enumerate(soup.find_all(name = 'p', attrs = {"class" : 'styles-module_productDescriptionContent--76j9I'})):
-                        match p_iter:
-                            case 0: # description
-                                pass # product_data["description"] = p_tag.text.strip()
-                            case 1: # ingridients
-                                product_data["ingridients"] = p_tag.text.strip()
-                            case 2: # additional information
-                                pass # product_data["info"] = p_tag.text.strip()
+                    for divs in soup.find_all(name = 'div', attrs = {"class" : 'js-navbar-section product-container__section'}):
+                        if "id" not in divs.attrs:
+                            continue # should not happen
+                        match divs.id:
+                            case "product-description":
+                                product_data["description"] = divs.text.strip()
+                            case "product-ingredients":
+                                product_data["ingridients"] = divs.text.strip()
+                            case "product-additional-info":
+                                product_data["add_info"] = divs.text.strip()
                             case _:
-                                logMsg(f"found too many p blocks in {link}")
+                                pass # should not happen
 
-                    # in <meta content=... property=...> blocks you can find product name, description, price 
-                    for meta_tag in soup.find_all('meta'):
-                        if ("content" in meta_tag.attrs) and ("property" in meta_tag.attrs):
-                            if meta_tag["property"] == "product:price:amount":
-                                product_data["price"] = meta_tag["content"].strip()
-                            if meta_tag["property"] == "og:description":
-                                product_data["description"] = meta_tag["content"].strip()
-                            if meta_tag["property"] == "og:title":
-                                product_data["title"] = meta_tag["content"].strip()
+                    # there should be only one object with short description with class as bellow
+                    # within one can find capacity: <description>, <capacity>
+                    product_data["short_descr"] = soup.find(name = 'p', attrs = {"class" : 'js-product-short-description product-content__short-description'}).text.strip()
 
-                    # block <span class="styles-module_capacity--t8nUz"> XXX </span> holds capacity info, example: "20 ml"
-                    for span_tag in soup.find_all(name = 'span', attrs = {"class" : 'styles-module_capacity--t8nUz'}):
-                            product_data["capacity"] = span_tag.text.strip()
+                    # there should be only one object with product brand with class as bellow
+                    brand = soup.find(name = 'a', attrs = {"class" : 'product-content__link'})
+                    product_data["brand"] = brand.text.strip()
+                    # product_data["brand_url"] = base_url + brand.href
+
+                    # there should be only one object title
+                    product_data["title"] = soup.find(name = 'title').text.strip()
+
+                    # hebe pages have 2 blocks with <span class="product-units__value">
+                    # first one with another attribute: data-masterid="..." - contains product ID
+                    # second one with cost to quantity ratio
+                    for spans in soup.find_all(name = 'span', attrs = {"class" : 'product-units__value'}):
+                        if "data-masterid" in spans.attrs:
+                            product_data["id"] = spans.text.strip()
+                        else:
+                            product_data["ratio"] = spans.text.strip()
+
+
+                    # price is split into 3 seperate span blocks: <XX>,<YY> <ZZ>
+                    # <XX> is in <span class="price-product__amount">, while
+                    # <YY> and <ZZ> are in 2 span blocks nested in <span class="price-product__currency">
+                    spansYZ = soup.find(name = 'span', attrs = {"class" : 'price-product__currency'}).text.strip()
+                    product_data["price"] = f"{soup.find(name = 'span', attrs = {"class" : 'price-product__amount'}).text.strip()},{spansYZ[0]} {spansYZ[1]}"
                     
+
                     category_file.write(f'"{i}" : {json.dumps(product_data, indent=3, ensure_ascii=False)}')    
+
+                log_msg(f"Found {successful_product_count} out of {total_product_count} products in category {categories[cat]}.")
             category_file.write("\n}")
 
 def is_data_present():
