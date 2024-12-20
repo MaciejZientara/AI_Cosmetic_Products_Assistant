@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import datetime
 from shutil import rmtree
 from pathlib import Path
-from logger import logMsg
+from logger import log_msg
 
 
 dir_path = os.path.dirname(os.path.dirname(__file__))
@@ -35,7 +35,7 @@ def clean():
     Remove raw data directory with its content.
     :return: None
     """
-    logMsg("cleaning directory")
+    log_msg("cleaning directory")
     rmtree(raw_data_dir) # remove directory with content
 
 
@@ -56,7 +56,7 @@ def find_proxies():
     not working and do not add to proxies list.
     :return: None
     """
-    logMsg("finding proxies")
+    log_msg("finding proxies")
     global proxies
     global proxy_iter
     proxy_iter = 0
@@ -76,23 +76,23 @@ def find_proxies():
             continue
 
         proxy = f"{ip}:{port}"
-        logMsg(f"checking proxy: {proxy}")
+        log_msg(f"checking proxy: {proxy}")
         try:
             response = requests.get(base_url, proxies={"http": proxy, "https": proxy}, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
         except:
             # proxy doesn't work
-            logMsg("FAIL")
+            log_msg("FAIL")
             continue
 
-        logMsg("PASS")
+        log_msg("PASS")
         proxies.append(proxy)
         working_proxies += 1
         if working_proxies >= expected_working_proxies:
             break
 
-    logMsg(f"working proxies count = {len(proxies)}")
-    # logMsg(proxies)
+    log_msg(f"working proxies count = {len(proxies)}")
+    # log_msg(proxies)
 
 
 def proxy_req(url):
@@ -113,7 +113,7 @@ def proxy_req(url):
             response = requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            logMsg(f"Error fetching {url}: {e}")
+            log_msg(f"Error fetching {url}: {e}")
             retry_count -= 1
             continue # skip to the next link if an error occurs
         return response, True # succesfully obtained product data
@@ -145,7 +145,7 @@ def get_product_urls():
     product_links = set()
 
     for cat_idx,cat_link in enumerate(category_links):
-        logMsg(f"start working on category: {categories[cat_idx]}")
+        log_msg(f"start working on category: {categories[cat_idx]}")
         page = 0
         with open(Path(raw_data_dir, categories[cat_idx]+".txt"), "w", encoding="utf8") as txt_file:
             while True:
@@ -199,7 +199,7 @@ def get_product_info():
                     if not first_product:
                         category_file.write(",\n")
                     first_product = False
-                    logMsg(f"download product: {i}")
+                    log_msg(f"download product: {i}")
                     response,status = proxy_req(link)
                     if status == False:
                         continue # no data obtained
@@ -218,7 +218,7 @@ def get_product_info():
                             case 2: # additional information
                                 pass # product_data["info"] = p_tag.text.strip()
                             case _:
-                                logMsg(f"found too many p blocks in {link}")
+                                log_msg(f"found too many p blocks in {link}")
 
                     # in <meta content=... property=...> blocks you can find product name, description, price 
                     for meta_tag in soup.find_all('meta'):
