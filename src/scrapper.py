@@ -20,24 +20,24 @@ categories = []
 
 base_url = "https://www.hebe.pl"
 category_links = [
-    "https://www.hebe.pl/skladniki-kosmetykow/",
-    "https://www.hebe.pl/kosmetyki-do-makijazu/",
-    "https://www.hebe.pl/twarz/",
-    "https://www.hebe.pl/wlosy/",
-    "https://www.hebe.pl/cialo/",
-    "https://www.hebe.pl/zapachy/",
-    "https://www.hebe.pl/paznokcie/",
-    "https://www.hebe.pl/higiena/",
-    # "https://www.hebe.pl/zdrowie/",
-    "https://www.hebe.pl/kosmetyki-azjatyckie/",
-    "https://www.hebe.pl/dermokosmetyki/",
-    "https://www.hebe.pl/kosmetyki-naturalne/",
-    # "https://www.hebe.pl/mama-i-dziecko/",
-    # "https://www.hebe.pl/mezczyzna/",
-    # "https://www.hebe.pl/elektronika/",
-    # "https://www.hebe.pl/lifestyle/",
-    # "https://www.hebe.pl/zestawy/",
-    # "https://www.hebe.pl/produkty-drogeryjne/",
+    "https://www.hebe.pl/skladniki-kosmetykow",
+    "https://www.hebe.pl/kosmetyki-do-makijazu",
+    "https://www.hebe.pl/twarz",
+    "https://www.hebe.pl/wlosy",
+    "https://www.hebe.pl/cialo",
+    "https://www.hebe.pl/zapachy",
+    "https://www.hebe.pl/paznokcie",
+    "https://www.hebe.pl/higiena",
+    # "https://www.hebe.pl/zdrowie",
+    "https://www.hebe.pl/kosmetyki-azjatyckie",
+    "https://www.hebe.pl/dermokosmetyki",
+    "https://www.hebe.pl/kosmetyki-naturalne",
+    # "https://www.hebe.pl/mama-i-dziecko",
+    # "https://www.hebe.pl/mezczyzna",
+    # "https://www.hebe.pl/elektronika",
+    # "https://www.hebe.pl/lifestyle",
+    # "https://www.hebe.pl/zestawy",
+    # "https://www.hebe.pl/produkty-drogeryjne",
 ]
 
 def clean():
@@ -115,7 +115,8 @@ def proxy_req(url):
     retry_count = 10
     while retry_count > 0:
         proxy = proxies[proxy_iter] if USE_PROXY and (len(proxies) > 0) else None
-        proxy_iter = (proxy_iter + 1) % len(proxies) # cycle through proxies
+        if len(proxies) > 0:
+            proxy_iter = (proxy_iter + 1) % len(proxies) # cycle through proxies
         try:
             response = requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
@@ -264,7 +265,7 @@ def get_product_info():
                     # <XX> is in <span class="price-product__amount">, while
                     # <YY> and <ZZ> are in 2 span blocks nested in <span class="price-product__currency">
                     spansYZ = soup.find(name = 'span', attrs = {"class" : 'price-product__currency'}).text.strip()
-                    product_data["price"] = f"{soup.find(name = 'span', attrs = {"class" : 'price-product__amount'}).text.strip()},{spansYZ[0]} {spansYZ[1]}"
+                    product_data["price"] = soup.find(name = 'span', attrs = {"class" : 'price-product__amount'}).text.strip()+f",{spansYZ[0]} {spansYZ[1]}"
                     
 
                     category_file.write(f'"{i}" : {json.dumps(product_data, indent=3, ensure_ascii=False)}')    
